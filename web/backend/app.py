@@ -19,6 +19,7 @@ import threading
 from vision_module import VisionModule
 from nlp_module import NLPModule
 from decision_fusion import DecisionFusion
+from hardware import RobotController
 
 app = Flask(__name__, 
             template_folder='../frontend',
@@ -30,6 +31,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 vision = VisionModule()
 nlp = NLPModule(use_mock=True)  # use_mock=True để test không cần microphone
 fusion = DecisionFusion()
+controller = RobotController(mock_mode=True)  # Đặt mock_mode=False khi cắm board Arduino thật
 
 # Biến lưu trạng thái
 current_frame = None
@@ -62,8 +64,10 @@ def handle_voice_command(data):
         current_action = action
         
         # Kết hợp với vision để quyết định
-        # (Lưu ý: Bạn có thể cần triển khai fusion.decide trong decision_fusion.py)
         final_action = fusion.fuse(action, current_objects)
+        
+        # Gửi lệnh xuống phần cứng (Arduino)
+        controller.send_action(final_action)
         
         # Gửi kết quả về client
         emit('command_result', {
