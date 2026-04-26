@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot FEEE - Smart Control Center</title>
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        /* CSS nội bộ để đảm bảo giao diện hoạt động ngay */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a2e; color: white; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { color: #00d4ff; text-align: center; }
+        .video-container { position: relative; width: 100%; max-width: 800px; margin: 0 auto; }
+        .video-feed { width: 100%; border-radius: 10px; border: 2px solid #00d4ff; background: #000; }
+        .object-list { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid #333; }
+        .object-item { padding: 8px; margin: 5px 0; border-left: 4px solid #00d4ff; background: rgba(255,255,255,0.05); }
+        .command-result { background: #161625; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #00d4ff; }
+        .voice-btn { background: #00d4ff; color: #1a1a2e; border: none; padding: 12px 24px; border-radius: 25px; font-size: 16px; cursor: pointer; transition: all 0.3s; font-weight: bold; }
+        .voice-btn:hover { transform: scale(1.05); background: #00b8e6; }
+        .voice-btn.listening { background: #ff4444; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .feedback-buttons { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-correct { background: #00cc66; color: white; }
+        .btn-wrong { background: #ff4444; color: white; }
+        .status { margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Robot FEEE - Control Center</h1>
+        
+        <div class="video-container">
+            <img id="videoFeed" class="video-feed" src="/video_feed" alt="Video Feed">
+        </div>
+        
+        <div class="object-list">
+            <h3>🎯 Đối tượng phát hiện</h3>
+            <div id="objectList">Đang chờ dữ liệu...</div>
+        </div>
+        
+        <div class="command-result">
+            <h3>🎤 Điều khiển bằng giọng nói</h3>
+            <button id="voiceBtn" class="voice-btn">🎙️ Nhấn và nói</button>
+            <div id="commandStatus" style="margin-top: 10px; color: #aaa;"></div>
+            <div id="commandResult" style="margin-top: 15px;"></div>
+            <div class="feedback-buttons" id="feedbackBtns" style="display: none;">
+                <button id="correctBtn" class="voice-btn btn-correct">✅ Đúng</button>
+                <button id="wrongBtn" class="voice-btn btn-wrong">❌ Sai</button>
+            </div>
+        </div>
+        
+        <div class="status">
+            <h3>📊 Trạng thái robot</h3>
+            <div id="robotStatus">Đang khởi động...</div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        const objectListDiv = document.getElementById('objectList');
+        const voiceBtn = document.getElementById('voiceBtn');
+        const commandStatus = document.getElementById('commandStatus');
+        const commandResult = document.getElementById('commandResult');
+        const feedbackBtns = document.getElementById('feedbackBtns');
+        const correctBtn = document.getElementById('correctBtn');
+        const wrongBtn = document.getElementById('wrongBtn');
+        const robotStatus = document.getElementById('robotStatus');
+        
+        let lastCommand = '';
+        let isListening = false;
+        
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            commandStatus.innerHTML = '✅ Đã kết nối robot';
+        });
+        
+        socket.on('vision_update', (data) => {
+            if (data.objects && data.objects.length > 0) {
+                let html = '';
+                data.objects.forEach(obj => {
+                    let behaviorColor = '';
+                    switch(obj.behavior) {
+                        case 'normal': behaviorColor = '#00cc66'; break;
+                        case 'fast': behaviorColor = '#ffaa00'; break;
+                        case 'stopped': behaviorColor = '#ff4444'; break;
+                        case 'turning': behaviorColor = '#00d4ff'; break;
+                        default: behaviorColor = '#888';
+                    }
+                    html += `<div class="object-item" style="border-left-color: ${behaviorColor}">
+                        <strong>ID ${obj.id}</strong> - ${obj.class}<br>
+                        <small>Hành vi: ${obj.behavior} | Độ tin cậy: ${(obj.confidence * 100).toFixed(0)}%</small>
+                    </div>`;
+                });
+                objectListDiv.innerHTML = html;
+            } else {
+                objectListDiv.innerHTML = 'Không có đối tượng nào';
+            }
+        });
+        
+        socket.on('command_result', (data) => {
+            if (data.success) {
+                commandResult.innerHTML = `
+                    <div style="background: rgba(0, 204, 102, 0.2); padding: 15px; border-radius: 5px; border-left: 5px solid #00cc66;">
+                        <strong>📝 Lệnh:</strong> "${data.text}"<br>
+                        <strong>🎯 Ý định:</strong> ${data.intent}<br>
+                        <strong>🚀 Hành động:</strong> ${data.action}<br>
+                        <strong>🔄 Kết luận:</strong> ${data.final_action}<br>
+                        <strong>📊 Độ tin cậy:</strong> ${(data.confidence * 100).toFixed(0)}%
+                    </div>
+                `;
+                lastCommand = data.text;
+                feedbackBtns.style.display = 'flex';
+                robotStatus.innerHTML = `Đang thực hiện: ${data.final_action}`;
+            } else {
+                commandResult.innerHTML = `<div style="background: rgba(255, 68, 68, 0.2); padding: 15px; border-radius: 5px; border-left: 5px solid #ff4444;">
+                    ❌ Không hiểu lệnh: "${data.text}"
+                </div>`;
+            }
+            isListening = false;
+            voiceBtn.classList.remove('listening');
+            voiceBtn.innerHTML = '🎙️ Nhấn và nói';
+        });
+        
+        socket.on('feedback_result', (data) => {
+            if (data.success) {
+                commandResult.innerHTML += '<br><small style="color: #0f0;">✅ Đã ghi nhận phản hồi, hệ thống đang học hỏi...</small>';
+                setTimeout(() => {
+                    feedbackBtns.style.display = 'none';
+                }, 2000);
+            }
+        });
+        
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'vi-VN';
+            
+            voiceBtn.onclick = () => {
+                if (isListening) return;
+                isListening = true;
+                voiceBtn.classList.add('listening');
+                voiceBtn.innerHTML = '🔴 Đang nghe...';
+                recognition.start();
+            };
+            
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                commandStatus.innerHTML = `🎤 Đã nhận: "${text}"`;
+                socket.emit('voice_command', { text: text });
+            };
+            
+            recognition.onend = () => {
+                isListening = false;
+                voiceBtn.classList.remove('listening');
+                voiceBtn.innerHTML = '🎙️ Nhấn và nói';
+            };
+        } else {
+            voiceBtn.innerHTML = '❌ Trình duyệt không hỗ trợ voice';
+            // Fallback input
+            const inputHtml = `<input type="text" id="textCommand" placeholder="Nhập câu lệnh..." style="width: 100%; padding: 12px; margin-top: 15px; background: #000; color: #fff; border: 1px solid #00d4ff; border-radius: 5px;">
+                              <button id="sendTextBtn" class="voice-btn" style="margin-top: 10px; width: 100%;">Gửi lệnh</button>`;
+            document.querySelector('.command-result').insertAdjacentHTML('beforeend', inputHtml);
+            document.getElementById('sendTextBtn').onclick = () => {
+                const text = document.getElementById('textCommand').value;
+                if (text) {
+                    socket.emit('voice_command', { text: text });
+                    document.getElementById('textCommand').value = '';
+                }
+            };
+        }
+        
+        correctBtn.onclick = () => socket.emit('feedback', { success: true, command: lastCommand });
+        wrongBtn.onclick = () => socket.emit('feedback', { success: false, command: lastCommand });
+        socket.emit('get_status');
+        setInterval(() => socket.emit('get_status'), 5000);
+    </script>
+</body>
+</html>

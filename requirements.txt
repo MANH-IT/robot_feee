@@ -1,0 +1,31 @@
+# Core libraries
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Vision & YOLO
+ultralytics>=8.2.0
+opencv-python>=4.8.0
+
+# Spiking Neural Networks (SNN)
+snntorch>=0.3.0
+
+# Web interface
+flask>=3.0.0
+flask-socketio>=5.3.0
+python-socketio>=5.10.0
+
+# NLP & Vietnamese
+vosk>=0.3.45
+stanza>=1.8.0
+networkx>=3.0
+sounddevice>=0.4.6
+
+# Data handling & visualization
+numpy>=1.24.0
+matplotlib>=3.7.0
+
+# Utility
+pyserial>=3.5   # for communication with Arduino
+
+# For future enhancement (optional)
+transformers>=4.36.0   # for PhoBERT (if needed)
