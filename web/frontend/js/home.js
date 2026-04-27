@@ -1,4 +1,4 @@
-// home.js - Xử lý trang chủ Robot EEEC
+// home.js - Xử lý trang chủ Robot FEEE
 // Đại học Giao thông Vận tải
 
 // ==================== CẤU HÌNH ====================
@@ -126,10 +126,10 @@ function getFallbackNews() {
     return [
         {
             id: 1,
-            title: "Khởi động dự án Robot EEEC Giao tiếp Thông minh",
+            title: "Khởi động dự án Robot FEEE Giao tiếp Thông minh",
             category: "công nghệ",
             date: new Date().toLocaleDateString('vi-VN'),
-            summary: "Trường Đại học Giao thông Vận tải chính thức khởi động dự án nghiên cứu Robot EEEC ứng dụng Spiking Neural Networks (SNN) trong giao tiếp và phục vụ thông minh.",
+            summary: "Trường Đại học Giao thông Vận tải chính thức khởi động dự án nghiên cứu Robot FEEE ứng dụng Spiking Neural Networks (SNN) trong giao tiếp và phục vụ thông minh.",
             image: "https://picsum.photos/400/250?random=1"
         },
         {
@@ -601,7 +601,7 @@ function init() {
     setupRobotCard();
     setupTypingEffect();
 
-    console.log('Home page initialized - Robot EEEC');
+    console.log('Home page initialized - Robot FEEE');
 }
 
 // Thêm CSS animation cho toast nếu chưa có

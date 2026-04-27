@@ -29,7 +29,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Khởi tạo các module
 vision = VisionModule()
-nlp = NLPModule(use_mock=True)  # use_mock=True để test không cần microphone
+nlp = NLPModule(use_mock=False)  # Đã có Model Vosk & Stanza, chạy thật!
 fusion = DecisionFusion()
 controller = RobotController(mock_mode=True)  # Đặt mock_mode=False khi cắm board Arduino thật
 
@@ -106,16 +106,44 @@ def handle_get_status():
         'current_action': current_action
     })
 
+@socketio.on('ask_question')
+def handle_ask_question(data):
+    """Xử lý câu hỏi qua WebSocket"""
+    question = data.get('question', '')
+    if question:
+        answer, confidence = nlp.answer_question(question)
+        emit('answer_response', {
+            'question': question,
+            'answer': answer,
+            'confidence': confidence
+        })
+
 # Routes
 @app.route('/')
 def index():
     """Trang chủ"""
-    return render_template('index.html')
+    return render_template('pages/home.html')
 
 @app.route('/camera')
 def camera():
     """Trang camera"""
     return render_template('pages/camera.html')
+
+@app.route('/chat')
+def chat():
+    return render_template('pages/chat.html')
+
+@app.route('/map')
+def map_page():
+    return render_template('pages/map.html')
+
+@app.route('/news')
+def news():
+    return render_template('pages/news.html')
+
+@app.route('/team')
+def team():
+    return render_template('pages/team.html')
 
 @app.route('/video_feed')
 def video_feed():
@@ -155,6 +183,24 @@ def post_command():
         })
     return jsonify({'success': False, 'error': 'Cannot parse'}), 400
 
+@app.route('/api/ask', methods=['POST'])
+def ask_question():
+    """API nhận câu hỏi và trả lời"""
+    data = request.get_json()
+    question = data.get('question', '')
+    
+    if not question:
+        return jsonify({'success': False, 'error': 'No question provided'}), 400
+    
+    answer, confidence = nlp.answer_question(question)
+    
+    return jsonify({
+        'success': True,
+        'question': question,
+        'answer': answer,
+        'confidence': confidence
+    })
+
 # Vision processing thread
 def vision_loop():
     global current_frame, current_objects
@@ -174,10 +220,47 @@ def vision_loop():
             ]
         })
 
+# Audio processing thread
+def audio_loop():
+    print("[Audio] Starting offline audio listening thread...")
+    while True:
+        try:
+            text = nlp.listen_once()
+            if text:
+                print(f"[Audio] Nhận diện giọng nói: {text}")
+                
+                action, command_obj = nlp.parse_command(text)
+                
+                if command_obj:
+                    global current_command, current_action
+                    current_command = command_obj
+                    current_action = action
+                    
+                    final_action = fusion.fuse(action, current_objects)
+                    controller.send_action(final_action)
+                    
+                    socketio.emit('command_result', {
+                        'success': True,
+                        'text': text,
+                        'intent': command_obj.intent,
+                        'action': action,
+                        'final_action': final_action,
+                        'confidence': command_obj.confidence,
+                        'entities': command_obj.entities
+                    })
+        except Exception as e:
+            print(f"[Audio] Lỗi vòng lặp nghe: {e}")
+            import time
+            time.sleep(1)
+
 if __name__ == '__main__':
     # Chạy vision loop trong thread riêng
     vision_thread = threading.Thread(target=vision_loop, daemon=True)
     vision_thread.start()
+    
+    # Chạy audio loop trong thread riêng
+    audio_thread = threading.Thread(target=audio_loop, daemon=True)
+    audio_thread.start()
     
     # Chạy web server
     print("[Web] Starting server on http://localhost:5000")

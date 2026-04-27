@@ -1,5 +1,5 @@
 // team.js - Xử lý trang đội ngũ
-// Robot EEEC - Đại học Giao thông Vận tải
+// Robot FEEE - Đại học Giao thông Vận tải
 
 // ==================== DỮ LIỆU ĐỘI NGŨ ====================
 const teamData = {
@@ -438,7 +438,7 @@ function init() {
     animateTeamStats();
 
     // Log thông tin
-    console.log('Team page initialized - Robot EEEC');
+    console.log('Team page initialized - Robot FEEE');
     console.log(`Advisors: ${teamData.advisors.length}`);
     console.log(`Members: ${teamData.members.length}`);
 
