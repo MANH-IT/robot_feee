@@ -1,179 +1,442 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Robot FEEE - Smart Control Center</title>
-    <link rel="stylesheet" href="/assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* CSS nội bộ để đảm bảo giao diện hoạt động ngay */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a2e; color: white; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        h1 { color: #00d4ff; text-align: center; }
-        .video-container { position: relative; width: 100%; max-width: 800px; margin: 0 auto; }
-        .video-feed { width: 100%; border-radius: 10px; border: 2px solid #00d4ff; background: #000; }
-        .object-list { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid #333; }
-        .object-item { padding: 8px; margin: 5px 0; border-left: 4px solid #00d4ff; background: rgba(255,255,255,0.05); }
-        .command-result { background: #161625; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #00d4ff; }
-        .voice-btn { background: #00d4ff; color: #1a1a2e; border: none; padding: 12px 24px; border-radius: 25px; font-size: 16px; cursor: pointer; transition: all 0.3s; font-weight: bold; }
-        .voice-btn:hover { transform: scale(1.05); background: #00b8e6; }
-        .voice-btn.listening { background: #ff4444; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-        .feedback-buttons { display: flex; gap: 10px; margin-top: 15px; }
-        .btn-correct { background: #00cc66; color: white; }
-        .btn-wrong { background: #ff4444; color: white; }
-        .status { margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; }
+        :root {
+            --utc-blue: #0099ff;
+            --utc-yellow: #ffdd44;
+            --utc-dark: #0a0e1a;
+            --utc-gray: #1a1f2e;
+            --gradient-blue: linear-gradient(135deg, #0099ff, #0066cc);
+            --gradient-gold: linear-gradient(135deg, #ffdd44, #ffaa00);
+            --bg-glass: rgba(26, 31, 46, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--utc-dark);
+            color: #e0e5f0;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .navbar {
+            backdrop-filter: blur(10px);
+            background: rgba(10, 14, 26, 0.95);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(0, 153, 255, 0.3);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-brand span {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, var(--utc-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .nav-brand small {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--utc-yellow);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+            padding: 2rem 5%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* --- Video Section --- */
+        .video-card {
+            background: var(--bg-glass);
+            border-radius: 24px;
+            border: 1px solid rgba(0, 153, 255, 0.1);
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .card-header {
+            padding: 1.2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--utc-yellow);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .video-wrapper {
+            position: relative;
+            background: #000;
+            aspect-ratio: 16 / 9;
+            width: 100%;
+        }
+
+        #videoFeed {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* --- Controls Section --- */
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .glass-card {
+            background: var(--bg-glass);
+            border-radius: 20px;
+            padding: 1.5rem;
+            border: 1px solid rgba(0, 153, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .voice-section {
+            text-align: center;
+        }
+
+        .voice-btn {
+            width: 100%;
+            background: var(--gradient-blue);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+            box-shadow: 0 5px 15px rgba(0, 153, 255, 0.3);
+        }
+
+        .voice-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 153, 255, 0.5);
+        }
+
+        .voice-btn.listening {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); }
+        }
+
+        .command-log {
+            margin-top: 1rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 0.9rem;
+            min-height: 100px;
+        }
+
+        .object-list {
+            list-style: none;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .object-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.8rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .footer {
+            margin-top: 3rem;
+            padding: 2rem 5%;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            color: #6a7288;
+            font-size: 0.8rem;
+        }
+
+        /* Feedback buttons */
+        .feedback-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 1rem;
+        }
+
+        .fb-btn {
+            flex: 1;
+            padding: 0.6rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: 0.2s;
+        }
+
+        .fb-correct { background: rgba(0, 204, 102, 0.2); color: #00ff88; border: 1px solid #00cc66; }
+        .fb-wrong { background: rgba(255, 68, 68, 0.2); color: #ff4444; border: 1px solid #ff4444; }
+
+        @media (max-width: 900px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
+
 <body>
-    <div class="container">
-        <h1>🤖 Robot FEEE - Control Center</h1>
-        
-        <div class="video-container">
-            <img id="videoFeed" class="video-feed" src="/video_feed" alt="Video Feed">
+    <nav class="navbar">
+        <div class="nav-brand">
+            <div class="logo" style="width:40px;height:40px;background:var(--utc-blue);border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                <img src="/assets/images/logo.png" alt="Logo" style="width:100%;height:100%;object-fit:cover;">
+            </div>
+            <span>Robot FEEE<small>Smart Control Center</small></span>
         </div>
-        
-        <div class="object-list">
-            <h3>🎯 Đối tượng phát hiện</h3>
-            <div id="objectList">Đang chờ dữ liệu...</div>
+        <div class="nav-status">
+            <span class="status-badge" id="connStatus">ONLINE</span>
         </div>
-        
-        <div class="command-result">
-            <h3>🎤 Điều khiển bằng giọng nói</h3>
-            <button id="voiceBtn" class="voice-btn">🎙️ Nhấn và nói</button>
-            <div id="commandStatus" style="margin-top: 10px; color: #aaa;"></div>
-            <div id="commandResult" style="margin-top: 15px;"></div>
-            <div class="feedback-buttons" id="feedbackBtns" style="display: none;">
-                <button id="correctBtn" class="voice-btn btn-correct">✅ Đúng</button>
-                <button id="wrongBtn" class="voice-btn btn-wrong">❌ Sai</button>
+    </nav>
+
+    <main class="main-grid">
+        <div class="left-column">
+            <div class="video-card">
+                <div class="card-header">
+                    <h2>📷 Live Video Feed</h2>
+                    <div id="videoMeta" style="font-size: 0.8rem; color: #aaa;">320x240 | 30 FPS</div>
+                </div>
+                <div class="video-wrapper">
+                    <img id="videoFeed" src="/video_feed" alt="Camera Stream">
+                </div>
+            </div>
+
+            <div class="glass-card" style="margin-top: 2rem;">
+                <div class="card-header" style="padding: 0 0 1rem 0;">
+                    <h2>🎤 Voice Command & Analysis</h2>
+                </div>
+                <div class="voice-section">
+                    <button id="voiceBtn" class="voice-btn">
+                        <span id="voiceIcon">🎙️</span>
+                        <span id="voiceText">Bắt đầu nhận lệnh giọng nói</span>
+                    </button>
+                    
+                    <div class="command-log" id="commandLog">
+                        <div style="color: #6a7288;">Hệ thống đang sẵn sàng lắng nghe...</div>
+                    </div>
+
+                    <div id="feedbackPanel" style="display: none;">
+                        <p style="font-size: 0.8rem; margin-bottom: 0.5rem; color: var(--utc-yellow);">Robot thực hiện đúng không?</p>
+                        <div class="feedback-group">
+                            <button id="correctBtn" class="fb-btn fb-correct">Hành động ĐÚNG</button>
+                            <button id="wrongBtn" class="fb-btn fb-wrong">Hành động SAI</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        
-        <div class="status">
-            <h3>📊 Trạng thái robot</h3>
-            <div id="robotStatus">Đang khởi động...</div>
+
+        <div class="control-panel">
+            <div class="glass-card">
+                <div class="card-header" style="padding: 0 0 1rem 0;">
+                    <h2>🎯 Objects Detected</h2>
+                </div>
+                <div class="object-list" id="objectList">
+                    <div style="text-align:center; padding: 2rem; color: #6a7288;">Chưa có dữ liệu...</div>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-header" style="padding: 0 0 1rem 0;">
+                    <h2>📊 Robot Status</h2>
+                </div>
+                <div id="robotStatus">
+                    <div class="status-item" style="border-left: 3px solid var(--utc-blue);">
+                        <span>Tâm thế:</span>
+                        <span style="color: #00ff88;">Sẵn sàng</span>
+                    </div>
+                    <div class="status-item" style="border-left: 3px solid var(--utc-yellow);">
+                        <span>Hành động:</span>
+                        <span id="currentAction">Đang chờ lệnh</span>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-    
+    </main>
+
+    <footer class="footer">
+        <p>Robot FEEE v2.0 - Developed for Academic Research</p>
+        <p>Technologies: Python · Flask · YOLOv8 · SNN · Vosk · Socket.IO</p>
+    </footer>
+
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script>
         const socket = io();
-        const objectListDiv = document.getElementById('objectList');
+        const videoFeed = document.getElementById('videoFeed');
+        const objectList = document.getElementById('objectList');
         const voiceBtn = document.getElementById('voiceBtn');
-        const commandStatus = document.getElementById('commandStatus');
-        const commandResult = document.getElementById('commandResult');
-        const feedbackBtns = document.getElementById('feedbackBtns');
-        const correctBtn = document.getElementById('correctBtn');
-        const wrongBtn = document.getElementById('wrongBtn');
-        const robotStatus = document.getElementById('robotStatus');
-        
-        let lastCommand = '';
+        const voiceText = document.getElementById('voiceText');
+        const voiceIcon = document.getElementById('voiceIcon');
+        const commandLog = document.getElementById('commandLog');
+        const feedbackPanel = document.getElementById('feedbackPanel');
+        const currentAction = document.getElementById('currentAction');
+        const connStatus = document.getElementById('connStatus');
+
         let isListening = false;
-        
+        let lastCommandText = '';
+
         socket.on('connect', () => {
-            console.log('Connected to server');
-            commandStatus.innerHTML = '✅ Đã kết nối robot';
+            connStatus.textContent = 'ONLINE';
+            connStatus.style.borderColor = '#00ff88';
         });
-        
+
+        socket.on('disconnect', () => {
+            connStatus.textContent = 'OFFLINE';
+            connStatus.style.borderColor = '#ff4444';
+        });
+
         socket.on('vision_update', (data) => {
             if (data.objects && data.objects.length > 0) {
-                let html = '';
-                data.objects.forEach(obj => {
-                    let behaviorColor = '';
-                    switch(obj.behavior) {
-                        case 'normal': behaviorColor = '#00cc66'; break;
-                        case 'fast': behaviorColor = '#ffaa00'; break;
-                        case 'stopped': behaviorColor = '#ff4444'; break;
-                        case 'turning': behaviorColor = '#00d4ff'; break;
-                        default: behaviorColor = '#888';
-                    }
-                    html += `<div class="object-item" style="border-left-color: ${behaviorColor}">
-                        <strong>ID ${obj.id}</strong> - ${obj.class}<br>
-                        <small>Hành vi: ${obj.behavior} | Độ tin cậy: ${(obj.confidence * 100).toFixed(0)}%</small>
+                objectList.innerHTML = data.objects.map(obj => {
+                    let behaviorColor = '#888';
+                    if (obj.behavior === 'normal') behaviorColor = '#00cc66';
+                    else if (obj.behavior === 'fast') behaviorColor = '#ffaa00';
+                    else if (obj.behavior === 'stopped') behaviorColor = '#ff4444';
+                    else if (obj.behavior === 'turning') behaviorColor = '#00d4ff';
+
+                    const riskIcon = obj.risk_level === 'high' ? '⚠️' : '';
+
+                    return `
+                    <div class="object-item" style="border-left: 3px solid ${behaviorColor}">
+                        <div style="font-weight: 700;">${riskIcon} ${obj.class} #${obj.id}</div>
+                        <div style="font-size: 0.75rem; color: #8a92a8;">${obj.behavior.toUpperCase()} | ${Math.round(obj.confidence*100)}%</div>
                     </div>`;
-                });
-                objectListDiv.innerHTML = html;
+                }).join('');
             } else {
-                objectListDiv.innerHTML = 'Không có đối tượng nào';
+                objectList.innerHTML = '<div style="text-align:center; padding: 2rem; color: #6a7288;">Trống</div>';
             }
         });
-        
+
         socket.on('command_result', (data) => {
-            if (data.success) {
-                commandResult.innerHTML = `
-                    <div style="background: rgba(0, 204, 102, 0.2); padding: 15px; border-radius: 5px; border-left: 5px solid #00cc66;">
-                        <strong>📝 Lệnh:</strong> "${data.text}"<br>
-                        <strong>🎯 Ý định:</strong> ${data.intent}<br>
-                        <strong>🚀 Hành động:</strong> ${data.action}<br>
-                        <strong>🔄 Kết luận:</strong> ${data.final_action}<br>
-                        <strong>📊 Độ tin cậy:</strong> ${(data.confidence * 100).toFixed(0)}%
-                    </div>
-                `;
-                lastCommand = data.text;
-                feedbackBtns.style.display = 'flex';
-                robotStatus.innerHTML = `Đang thực hiện: ${data.final_action}`;
-            } else {
-                commandResult.innerHTML = `<div style="background: rgba(255, 68, 68, 0.2); padding: 15px; border-radius: 5px; border-left: 5px solid #ff4444;">
-                    ❌ Không hiểu lệnh: "${data.text}"
-                </div>`;
-            }
             isListening = false;
             voiceBtn.classList.remove('listening');
-            voiceBtn.innerHTML = '🎙️ Nhấn và nói';
-        });
-        
-        socket.on('feedback_result', (data) => {
+            voiceIcon.textContent = '🎙️';
+            voiceText.textContent = 'Bắt đầu nhận lệnh giọng nói';
+
             if (data.success) {
-                commandResult.innerHTML += '<br><small style="color: #0f0;">✅ Đã ghi nhận phản hồi, hệ thống đang học hỏi...</small>';
-                setTimeout(() => {
-                    feedbackBtns.style.display = 'none';
-                }, 2000);
+                commandLog.innerHTML = `
+                <div style="color: #00ff88; font-weight: 600;">Lệnh: "${data.text}"</div>
+                <div style="font-size: 0.8rem; margin-top: 5px;">
+                    Ý định: <span style="color: var(--utc-yellow);">${data.intent}</span><br>
+                    Quyết định: <span style="color: var(--utc-blue);">${data.final_action}</span>
+                </div>`;
+                lastCommandText = data.text;
+                feedbackPanel.style.display = 'block';
+                currentAction.textContent = data.final_action;
+            } else {
+                commandLog.innerHTML = `<div style="color: #ff4444;">❌ Không hiểu lệnh: "${data.text}"</div>`;
             }
         });
-        
+
+        // Speech Recognition Setup
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
             recognition.lang = 'vi-VN';
-            
+            recognition.continuous = false;
+
             voiceBtn.onclick = () => {
                 if (isListening) return;
                 isListening = true;
                 voiceBtn.classList.add('listening');
-                voiceBtn.innerHTML = '🔴 Đang nghe...';
+                voiceIcon.textContent = '🔴';
+                voiceText.textContent = 'Đang nghe...';
+                commandLog.innerHTML = '<div style="color: #aaa;">Đang lắng nghe câu lệnh của bạn...</div>';
+                feedbackPanel.style.display = 'none';
                 recognition.start();
             };
-            
+
             recognition.onresult = (event) => {
                 const text = event.results[0][0].transcript;
-                commandStatus.innerHTML = `🎤 Đã nhận: "${text}"`;
+                commandLog.innerHTML = `<div style="color: #00d4ff;">Đã nhận: "${text}"... Đang xử lý...</div>`;
                 socket.emit('voice_command', { text: text });
             };
-            
-            recognition.onend = () => {
+
+            recognition.onerror = () => {
                 isListening = false;
                 voiceBtn.classList.remove('listening');
-                voiceBtn.innerHTML = '🎙️ Nhấn và nói';
+                voiceIcon.textContent = '🎙️';
+                voiceText.textContent = 'Lỗi! Thử lại';
             };
         } else {
-            voiceBtn.innerHTML = '❌ Trình duyệt không hỗ trợ voice';
-            // Fallback input
-            const inputHtml = `<input type="text" id="textCommand" placeholder="Nhập câu lệnh..." style="width: 100%; padding: 12px; margin-top: 15px; background: #000; color: #fff; border: 1px solid #00d4ff; border-radius: 5px;">
-                              <button id="sendTextBtn" class="voice-btn" style="margin-top: 10px; width: 100%;">Gửi lệnh</button>`;
-            document.querySelector('.command-result').insertAdjacentHTML('beforeend', inputHtml);
-            document.getElementById('sendTextBtn').onclick = () => {
-                const text = document.getElementById('textCommand').value;
-                if (text) {
-                    socket.emit('voice_command', { text: text });
-                    document.getElementById('textCommand').value = '';
-                }
-            };
+            voiceBtn.textContent = "❌ Trình duyệt không hỗ trợ Voice";
+            // Add input fallback if needed
         }
-        
-        correctBtn.onclick = () => socket.emit('feedback', { success: true, command: lastCommand });
-        wrongBtn.onclick = () => socket.emit('feedback', { success: false, command: lastCommand });
-        socket.emit('get_status');
-        setInterval(() => socket.emit('get_status'), 5000);
+
+        document.getElementById('correctBtn').onclick = () => {
+            socket.emit('feedback', { success: true, command: lastCommandText });
+            feedbackPanel.style.display = 'none';
+        };
+
+        document.getElementById('wrongBtn').onclick = () => {
+            socket.emit('feedback', { success: false, command: lastCommandText });
+            feedbackPanel.style.display = 'none';
+        };
     </script>
 </body>
+
 </html>

@@ -1,23 +1,41 @@
-# -*- coding: utf-8 -*-
 """
-__init__.py - Khoi tao module NLP cho robot FEEE
+__init__.py - Khởi tạo package NLP, export các class chính
 """
 
-from .config import NLPConfig, default_config
-from .intent_classifier import IntentClassifier
-from .knowledge_retriever import KnowledgeRetriever
-from .nlp_processor import NLPProcessor, default_processor
+from .config import NLPConfig
+from .data_structs import GrammarRule, ParsedCommand, DialogueContext
+from .stt import VoskSTT, MockSTT
+from .dependency_parser import DependencyParser, MockDependencyParser
+from .adaptive_grammar import AdaptiveGrammar
+from .intent_classifier import IntentClassifier, IntentSNN
+from .utils import preprocess_text, extract_action_from_intent, format_response
 
-# Cac doi tuong duoc export ra ngoai
 __all__ = [
+    # Config
     'NLPConfig',
-    'default_config',
+    
+    # Data structures
+    'GrammarRule',
+    'ParsedCommand',
+    'DialogueContext',
+    
+    # STT
+    'VoskSTT',
+    'MockSTT',
+    
+    # Parser
+    'DependencyParser',
+    'MockDependencyParser',
+    
+    # Grammar
+    'AdaptiveGrammar',
+    
+    # Intent
     'IntentClassifier',
-    'KnowledgeRetriever',
-    'NLPProcessor',
-    'default_processor'
+    'IntentSNN',
+    
+    # Utils
+    'preprocess_text',
+    'extract_action_from_intent',
+    'format_response'
 ]
-
-# Thong tin module
-__version__ = '3.0.0'
-__author__ = 'Robot EEEC Team'

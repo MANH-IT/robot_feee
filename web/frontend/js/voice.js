@@ -1,5 +1,5 @@
 // voice.js - Xử lý nhận diện giọng nói và TTS
-// Robot FEEE - Đại học Giao thông Vận tải
+// Robot EEEC - Đại học Giao thông Vận tải
 
 // ==================== CẤU HÌNH ====================
 const VOICE_CONFIG = {
@@ -418,7 +418,7 @@ function initVoiceModule() {
         });
     }
 
-    console.log('Voice module initialized - Robot FEEE');
+    console.log('Voice module initialized - Robot EEEC');
     console.log(`Speech Recognition: ${voiceState.supported.recognition ? '✓' : '✗'}`);
     console.log(`Speech Synthesis: ${voiceState.supported.synthesis ? '✓' : '✗'}`);
 }

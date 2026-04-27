@@ -1,4 +1,4 @@
-// WebSocket Manager for Robot FEEE
+// WebSocket Manager for Robot EEEC
 class WebSocketManager {
     constructor() {
         this.ws = null;

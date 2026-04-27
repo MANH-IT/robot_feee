@@ -4,7 +4,14 @@ stt.py - Speech-to-Text sử dụng Vosk offline cho tiếng Việt
 
 import json
 import queue
-import sounddevice as sd
+try:
+    import sounddevice as sd
+except OSError:
+    print("[WARN] PortAudio not found. sounddevice will be disabled.")
+    sd = None
+except ImportError:
+    print("[WARN] sounddevice not installed.")
+    sd = None
 import vosk
 import sys
 import os
@@ -62,6 +69,9 @@ class VoskSTT:
         text_result = None
         
         try:
+            if sd is None:
+                raise RuntimeError("sounddevice/PortAudio not available")
+                
             # Mở microphone stream
             stream = sd.RawInputStream(
                 samplerate=self.config.SAMPLE_RATE,
@@ -112,6 +122,9 @@ class VoskSTT:
         self.is_listening = True
         
         try:
+            if sd is None:
+                raise RuntimeError("sounddevice/PortAudio not available")
+                
             stream = sd.RawInputStream(
                 samplerate=self.config.SAMPLE_RATE,
                 blocksize=8000,

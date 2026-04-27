@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import time
+import os
 from typing import List, Tuple, Dict, Optional
 from .config import VisionConfig
 from .data_structs import ObjectInfo, Trajectory
@@ -59,6 +60,17 @@ class BehaviorSNN(nn.Module):
         self.lif2 = SpikingNeuron(beta=0.9)
         
         self.behavior_names = self.config.SNN_BEHAVIORS
+        
+        # Tự động load model nếu tồn tại
+        if os.path.exists(self.config.SNN_MODEL_PATH):
+            try:
+                self.load_model(self.config.SNN_MODEL_PATH)
+                self.is_trained = True
+            except Exception as e:
+                print(f"[SNN] Failed to load model: {e}")
+                self.is_trained = False
+        else:
+            self.is_trained = False
         
     def forward(self, x):
         """
@@ -166,9 +178,121 @@ class BehaviorSNN(nn.Module):
         """Phân loại hành vi cho nhiều object"""
         results = {}
         for obj_id, traj in trajectories.items():
-            results[obj_id] = self.classify_from_trajectory(traj)
+            if self.is_trained and len(traj) >= 10:
+                # Nếu đã train và có đủ dữ liệu, dùng SNN
+                from .utils import encode_trajectory_to_spike
+                spikes = encode_trajectory_to_spike(traj, num_steps=self.config.SNN_NUM_STEPS, method='delta')
+                results[obj_id] = self.predict(spikes)
+            else:
+                # Fallback về rule-based
+                results[obj_id] = self.classify_from_trajectory(traj)
         return results
     
+    def detect_collision_risk(self, trajectory: List[Tuple[float, float]]) -> dict:
+        """
+        Phát hiện nguy cơ va chạm với Danger Zone (vùng an toàn hình chữ nhật)
+        """
+        if len(trajectory) < 5:
+            return {'risk_level': 'none', 'time_to_collision': float('inf')}
+        
+        # Lấy 5 điểm gần nhất để dự đoán
+        recent = trajectory[-5:]
+        
+        # Tính vận tốc (dx, dy)
+        velocities = []
+        for i in range(1, len(recent)):
+            dx = recent[i][0] - recent[i-1][0]
+            dy = recent[i][1] - recent[i-1][1]
+            velocities.append((dx, dy))
+        
+        # Vận tốc trung bình
+        speeds = [np.sqrt(v[0]**2 + v[1]**2) for v in velocities]
+        avg_speed = np.mean(speeds)
+        
+        # Nếu vật thể đứng yên hoặc di chuyển quá chậm -> không có nguy cơ va chạm động
+        if avg_speed < self.config.SPEED_STOPPED:
+            return {'risk_level': 'none', 'time_to_collision': float('inf')}
+        
+        # Dự đoán vị trí tiếp theo (linear extrapolation)
+        last_dx, last_dy = velocities[-1]
+        last_pos = recent[-1]
+        next_pos = (last_pos[0] + last_dx, last_pos[1] + last_dy)
+        
+        # Giả sử robot ở trung tâm frame
+        robot_center = (self.config.FRAME_WIDTH // 2, self.config.FRAME_HEIGHT // 2)
+        
+        # Tính khoảng cách đến danger zone
+        if self.config.ENABLE_DANGER_ZONE:
+            curr_dist = self._distance_to_danger_zone(last_pos, robot_center)
+            next_dist = self._distance_to_danger_zone(next_pos, robot_center)
+            
+            # Kiểm tra xem đã va chạm chưa (nằm trong vùng an toàn)
+            if self._is_in_danger_zone(last_pos, robot_center):
+                return {
+                    'risk_level': 'high',
+                    'time_to_collision': 0,
+                    'direction': 'collided',
+                    'speed': float(avg_speed)
+                }
+        else:
+            # Fallback về điểm (center frame)
+            curr_dist = np.sqrt((last_pos[0] - robot_center[0])**2 + (last_pos[1] - robot_center[1])**2)
+            next_dist = np.sqrt((next_pos[0] - robot_center[0])**2 + (next_pos[1] - robot_center[1])**2)
+        
+        # Xác định hướng di chuyển tương đối
+        if next_dist < curr_dist:
+            direction = 'approaching'
+        elif next_dist > curr_dist + 2:
+            direction = 'moving_away'
+        else:
+            direction = 'crossing'
+            
+        # Ước tính thời gian va chạm (TTC) bằng frame
+        if direction == 'approaching' and (curr_dist - next_dist) > 0:
+            ttc = next_dist / (curr_dist - next_dist)
+        else:
+            ttc = float('inf')
+            
+        # Xác định mức độ nguy hiểm dựa trên TTC
+        risk = 'none'
+        if direction == 'approaching':
+            if ttc < 10:    # < 0.5 giây
+                risk = 'high'
+            elif ttc < 30:  # < 1.5 giây
+                risk = 'medium'
+            elif ttc < 60:  # < 3 giây
+                risk = 'low'
+        
+        return {
+            'risk_level': risk,
+            'time_to_collision': ttc,
+            'direction': direction,
+            'speed': float(avg_speed)
+        }
+
+    def _distance_to_danger_zone(self, obj_pos: Tuple[float, float], robot_center: Tuple[float, float]) -> float:
+        """Tính khoảng cách ngắn nhất từ một điểm đến vùng an toàn hình chữ nhật"""
+        ox, oy = obj_pos
+        rx, ry = robot_center
+        rw, rh = self.config.ROBOT_WIDTH_PX, self.config.ROBOT_HEIGHT_PX
+        
+        # Khoảng cách đến các cạnh (nếu ở ngoài)
+        dx = max(abs(ox - rx) - rw / 2, 0)
+        dy = max(abs(oy - ry) - rh / 2, 0)
+        
+        return np.sqrt(dx*dx + dy*dy)
+
+    def _is_in_danger_zone(self, obj_pos: Tuple[float, float], robot_center: Tuple[float, float]) -> bool:
+        """Kiểm tra xem một điểm có nằm trong vùng an toàn không"""
+        ox, oy = obj_pos
+        rx, ry = robot_center
+        rw, rh = self.config.ROBOT_WIDTH_PX, self.config.ROBOT_HEIGHT_PX
+        
+        in_x = (rx - rw / 2) <= ox <= (rx + rw / 2)
+        in_y = (ry - rh / 2) <= oy <= (ry + rh / 2)
+        
+        return in_x and in_y
+
     def save_model(self, path: str):
         """Lưu model đã train"""
         torch.save(self.state_dict(), path)

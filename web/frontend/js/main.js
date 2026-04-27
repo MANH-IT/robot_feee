@@ -1,9 +1,9 @@
-// main.js - Script chính cho Robot FEEE
+// main.js - Script chính cho Robot EEEC
 // Đại học Giao thông Vận tải
 
 // ==================== CẤU HÌNH TOÀN CỤC ====================
 const CONFIG = {
-    APP_NAME: 'Robot FEEE',
+    APP_NAME: 'Robot EEEC',
     UNIVERSITY: 'Đại học Giao thông Vận tải',
     API_URL: 'http://localhost:8000',
     VERSION: '1.0.0',

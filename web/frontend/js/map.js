@@ -1,5 +1,5 @@
 // map.js - Bản đồ tòa nhà 15 tầng
-// Robot FEEE - Đại học Giao thông Vận tải
+// Robot EEEC - Đại học Giao thông Vận tải
 
 // ==================== DỮ LIỆU TÒA NHÀ 15 TẦNG ====================
 const buildingData = {

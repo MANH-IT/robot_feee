@@ -14,8 +14,7 @@ from nlp import (
     AdaptiveGrammar,
     IntentClassifier,
     ParsedCommand,
-    extract_action_from_intent,
-    KnowledgeRetriever
+    extract_action_from_intent
 )
 
 
@@ -56,10 +55,6 @@ class NLPModule:
         
         # Khởi tạo Intent Classifier
         self.intent_classifier = IntentClassifier(self.config)
-        
-        # Khởi tạo knowledge retriever
-        self.knowledge = KnowledgeRetriever()
-        print("[NLPModule] Knowledge retriever initialized")
         
         print("[NLPModule] Initialized successfully")
     
@@ -121,14 +116,3 @@ class NLPModule:
     def get_grammar_summary(self):
         """Lấy tóm tắt các luật grammar (debug)"""
         return self.grammar.get_rules_summary()
-        
-    def answer_question(self, question: str) -> Tuple[str, float]:
-        """
-        Trả lời câu hỏi về trường học
-        Returns: (answer, confidence)
-        """
-        return self.knowledge.get_answer(question)
-    
-    def get_school_stats(self) -> Dict:
-        """Lấy thống kê về trường"""
-        return self.knowledge.get_stats()

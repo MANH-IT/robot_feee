@@ -1,5 +1,5 @@
 // news.js - Xử lý tin tức từ UTC
-// Robot FEEE - Đại học Giao thông Vận tải
+// Robot EEEC - Đại học Giao thông Vận tải
 
 // ==================== CẤU HÌNH ====================
 const NEWS_CONFIG = {
@@ -149,10 +149,10 @@ function getFallbackNews() {
         },
         {
             id: 5,
-            title: "Khởi động dự án Robot FEEE - Ứng dụng SNN trong giao tiếp thông minh",
+            title: "Khởi động dự án Robot EEEC - Ứng dụng SNN trong giao tiếp thông minh",
             category: "công nghệ",
             date: formatDate(new Date()),
-            summary: "Dự án Robot FEEE chính thức được khởi động tại Đại học Giao thông Vận tải.",
+            summary: "Dự án Robot EEEC chính thức được khởi động tại Đại học Giao thông Vận tải.",
             content: "Dự án sử dụng công nghệ Spiking Neural Networks (SNN) tiên tiến, kết hợp với xử lý ngôn ngữ tự nhiên và thị giác máy tính, hứa hẹn mang đến giải pháp robot phục vụ thông minh.",
             image: "https://picsum.photos/400/250?random=5",
             source: "utc.edu.vn"
@@ -465,7 +465,7 @@ async function init() {
         dom.refreshBtn.addEventListener('click', refreshNews);
     }
 
-    console.log('News page initialized - Robot FEEE');
+    console.log('News page initialized - Robot EEEC');
     console.log(`Loaded ${newsState.allNews.length} news articles from UTC`);
 }
 

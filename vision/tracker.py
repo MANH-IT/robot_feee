@@ -6,6 +6,7 @@ import time
 from typing import Dict, List, Tuple, Optional
 from collections import defaultdict
 from .data_structs import ObjectInfo, Trajectory
+from .utils import KalmanFilter
 
 
 class ByteTracker:
@@ -34,6 +35,9 @@ class ByteTracker:
         # Lưu object info đầy đủ
         self.objects: Dict[int, ObjectInfo] = {}
         
+        # Lưu Kalman Filters cho mỗi object
+        self.kalman_filters: Dict[int, KalmanFilter] = {}
+        
     def update(self, objects: List[dict], timestamp: float = None):
         """
         Cập nhật trajectory cho các object hiện tại
@@ -59,8 +63,19 @@ class ByteTracker:
             x1, y1, x2, y2 = obj['bbox']
             center = ((x1 + x2) / 2, (y1 + y2) / 2)
             
-            # Thêm vào lịch sử trajectory
-            self.trajectories[obj_id].append(center)
+            # Khởi tạo hoặc cập nhật Kalman Filter
+            if obj_id not in self.kalman_filters:
+                self.kalman_filters[obj_id] = KalmanFilter()
+                # Khởi tạo state với vị trí đầu tiên
+                self.kalman_filters[obj_id].X[0] = center[0]
+                self.kalman_filters[obj_id].X[1] = center[1]
+            
+            self.kalman_filters[obj_id].update(center)
+            predicted_pos = self.kalman_filters[obj_id].predict()
+            
+            # Sử dụng vị trí đã được filter cho trajectory (hoặc mix)
+            # Ở đây ta ưu tiên filter để giảm rung lắc
+            self.trajectories[obj_id].append((float(predicted_pos[0]), float(predicted_pos[1])))
             
             # Giới hạn độ dài lịch sử
             if len(self.trajectories[obj_id]) > self.history_len:
@@ -93,6 +108,8 @@ class ByteTracker:
                 del self.trajectories[obj_id]
             if obj_id in self.last_seen:
                 del self.last_seen[obj_id]
+            if obj_id in self.kalman_filters:
+                del self.kalman_filters[obj_id]
     
     def get_trajectory(self, obj_id: int) -> List[Tuple[float, float]]:
         """Lấy trajectory của một object"""

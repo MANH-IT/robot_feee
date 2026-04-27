@@ -20,9 +20,20 @@ from vision import (
 class VisionModule:
     """Module thị giác tổng hợp cho robot"""
     
-    def __init__(self, config: VisionConfig = None):
-        self.config = config or VisionConfig()
+    def __init__(self, config: VisionConfig = None, mode: str = "balanced"):
+        """
+        Khởi tạo VisionModule
         
+        Args:
+            config: Cấu hình vision
+            mode: Chế độ "safe", "balanced", hoặc "agile"
+        """
+        # Nếu đã truyền config thì dùng config, nếu không tạo mới với mode tương ứng
+        if config:
+            self.config = config
+        else:
+            self.config = VisionConfig(mode=mode)
+            
         # Khởi tạo các thành phần
         self.detector = YOLODetector(self.config)
         self.tracker = ByteTracker(
@@ -31,78 +42,121 @@ class VisionModule:
         )
         self.behavior_snn = BehaviorSNN(self.config)
         
-        # Mở camera với backend ổn định
-        self.cap = cv2.VideoCapture(self.config.CAMERA_ID, self.config.CAMERA_BACKEND)
+        # Thử mở camera với nhiều index và backend khác nhau
+        self.cap = None
+        indices_to_try = [self.config.CAMERA_ID, 0, 1, 2]
+        backends = [cv2.CAP_V4L2, cv2.CAP_ANY]
         
-        # Kiểm tra và thử các camera ID khác nếu không mở được
-        if not self.cap.isOpened():
-            print(f"[VisionModule] WARNING: Cannot open camera ID {self.config.CAMERA_ID}")
-            for i in range(5):
-                if i == self.config.CAMERA_ID: continue
-                self.cap = cv2.VideoCapture(i, self.config.CAMERA_BACKEND)
-                if self.cap.isOpened():
-                    print(f"[VisionModule] Using camera ID {i} instead")
-                    break
-        
-        if self.cap.isOpened():
+        for backend in backends:
+            for idx in indices_to_try:
+                print(f"[ThịGiác] Thử mở Camera ID {idx} với backend {backend}...")
+                cap = cv2.VideoCapture(idx, backend)
+                if cap.isOpened():
+                    # Thử đọc vài frame để "mồi" camera
+                    for _ in range(5):
+                        ret, _ = cap.read()
+                        if ret: break
+                    
+                    if ret:
+                        self.cap = cap
+                        print(f"[ThịGiác] KẾT NỐI THÀNH CÔNG Camera ID {idx}")
+                        break
+                    else:
+                        cap.release()
+            if self.cap: break
+            
+        if self.cap:
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.config.FRAME_WIDTH)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.config.FRAME_HEIGHT)
         else:
-            print("[VisionModule] ERROR: No camera available")
+            print("[ThịGiác] LỖI: Không thể truy cập Camera phần cứng. Vui lòng kiểm tra kết nối hoặc quyền hạn.")
+            # Khởi tạo VideoCapture rỗng để tránh crash
+            self.cap = cv2.VideoCapture() 
         
         # Biến FPS tracking
         self.frame_count = 0
         self.last_fps_time = time.time()
         self.current_fps = 0
         
-        print("[VisionModule] Initialized successfully")
+        # Trạng thái log để tránh flooding
+        self.last_risk_log_time = {} # obj_id -> timestamp
+        
+        print(f"[ThịGiác] Khởi tạo thành công ở chế độ '{self.config.MODE}'")
     
     def process_video(self) -> Generator[Tuple[np.ndarray, List[dict]], None, None]:
         """
-        Generator xử lý video liên tục
-        
-        Yields:
-            frame: Ảnh đã vẽ bounding box
-            objects: List các object dict với thông tin đầy đủ
+        Generator xử lý video liên tục. 
+        Nếu không có camera thật, sẽ tự động chuyển sang 'Simulation Mode' (giả lập).
         """
+        is_simulation = not self.cap.isOpened()
+        if is_simulation:
+            print("[ThịGiác] Đang chạy ở chế độ GIẢ LẬP (Simulation Mode)")
+            
         while True:
-            ret, frame = self.cap.read()
-            if not ret:
-                print("[VisionModule] Failed to read frame")
-                break
+            ret, frame = False, None
+            if not is_simulation:
+                ret, frame = self.cap.read()
             
-            start_time = time.time()
+            # Nếu camera hỏng hoặc đang giả lập
+            if not ret or frame is None:
+                # Tạo frame giả lập (đen/xám)
+                frame = np.zeros((self.config.FRAME_HEIGHT, self.config.FRAME_WIDTH, 3), dtype=np.uint8)
+                cv2.rectangle(frame, (0, 0), (self.config.FRAME_WIDTH, self.config.FRAME_HEIGHT), (20, 20, 20), -1)
+                
+                # Thêm hiệu ứng lưới (grid) cho chuyên nghiệp
+                for i in range(0, self.config.FRAME_WIDTH, 40):
+                    cv2.line(frame, (i, 0), (i, self.config.FRAME_HEIGHT), (40, 40, 40), 1)
+                for i in range(0, self.config.FRAME_HEIGHT, 40):
+                    cv2.line(frame, (0, i), (self.config.FRAME_WIDTH, i), (40, 40, 40), 1)
+                
+                # Tạo vật thể giả lập di chuyển
+                t = time.time()
+                obj_x = int(self.config.FRAME_WIDTH / 2 + np.cos(t) * 100)
+                obj_y = int(self.config.FRAME_HEIGHT / 2 + np.sin(t * 1.5) * 50)
+                
+                # Vẽ một vòng tròn đại diện vật thể giả lập
+                cv2.circle(frame, (obj_x, obj_y), 20, (0, 255, 255), 2)
+                cv2.putText(frame, "SIMULATION", (10, self.config.FRAME_HEIGHT - 10), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+                
+                # Giả lập dữ liệu object cho tracker
+                objects_raw = [{
+                    'id': 99,
+                    'bbox': [obj_x - 20, obj_y - 20, obj_x + 20, obj_y + 20],
+                    'confidence': 0.95,
+                    'class_id': 0,
+                    'class_name': 'person'
+                }]
+                timestamp = t
+            else:
+                timestamp = time.time()
+                # 1. Phát hiện vật thể thật
+                results = self.detector.detect(frame)
+                objects_raw = self.detector.extract_objects(results)
             
-            # Detect objects
-            results = self.detector.detect(frame)
-            objects_raw = self.detector.extract_objects(results)
+            # 2. Cập nhật tracker
+            self.tracker.update(objects_raw, timestamp)
             
-            # Update tracker
-            self.tracker.update(objects_raw, start_time)
-            
-            # Get trajectories and classify behaviors
+            # 3. Phân tích hành vi và rủi ro
             trajectories = self.tracker.get_all_trajectories()
             behaviors = self.behavior_snn.classify_batch(trajectories)
             
-            # Merge behavior info
-            objects = []
+            processed_objects = []
             for obj in objects_raw:
                 obj_id = obj['id']
-                if obj_id in behaviors:
-                    obj['behavior'] = behaviors[obj_id]
-                else:
-                    obj['behavior'] = 'unknown'
-                objects.append(obj)
+                obj['behavior'] = behaviors.get(obj_id, 'unknown')
+                
+                if obj_id in trajectories:
+                    risk_info = self.behavior_snn.detect_collision_risk(trajectories[obj_id])
+                    obj['risk'] = risk_info
+                
+                processed_objects.append(obj)
             
-            # Vẽ bounding box
-            annotated_frame = draw_bbox(frame, objects)
+            yield frame, processed_objects
             
-            # Thêm FPS info
-            self._update_fps()
-            cv2.putText(annotated_frame, f"FPS: {self.current_fps:.1f}", 
-                       (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-            
-            yield annotated_frame, objects
+            # Giới hạn tốc độ giả lập
+            if is_simulation:
+                time.sleep(0.03) # ~30 FPS
     
     def _update_fps(self):
         """Cập nhật FPS"""
@@ -116,7 +170,7 @@ class VisionModule:
     def release(self):
         """Giải phóng camera"""
         self.cap.release()
-        print("[VisionModule] Released camera")
+        print("[ThịGiác] Đã giải phóng camera")
     
     def get_frame(self) -> np.ndarray:
         """Lấy một frame (không qua xử lý)"""

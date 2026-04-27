@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thị giác Robot FEEE - Đại học Giao thông Vận tải</title>
+    <title>Thị giác Robot EEEC - Đại học Giao thông Vận tải</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -219,24 +219,14 @@
 
         .object-list {
             list-style: none;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
         }
 
         .object-list li {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
+            padding: 0.8rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             font-size: 0.85rem;
-        }
-
-        .object-name {
-            color: #e0e5f0;
-        }
-
-        .object-confidence {
-            color: var(--utc-yellow);
         }
 
         .camera-display {
@@ -288,12 +278,13 @@
             overflow: hidden;
             aspect-ratio: 16 / 9;
             border: 1px solid rgba(0, 153, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
         #videoFeed {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
         }
 
         .info-panel {
@@ -372,7 +363,7 @@
                 style="width:48px;height:48px;background:transparent;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px var(--utc-yellow);">
                 <img src="/assets/images/logo.png" alt="Logo UTC" style="width:100%;height:100%;object-fit:cover;">
             </div>
-            <span>Robot FEEE<small>Đại học Giao thông Vận tải</small></span>
+            <span>Robot EEEC<small>Đại học Giao thông Vận tải</small></span>
         </div>
         <ul class="nav-menu">
             <li class="nav-item"><a href="/" class="nav-link">Trang chủ</a></li>
@@ -392,9 +383,9 @@
             <div class="camera-sidebar">
                 <div class="camera-info">
                     <div class="camera-avatar">
-                        <img src="/assets/images/logo.png" alt="Robot FEEE">
+                        <img src="/assets/images/logo.png" alt="Robot EEEC">
                     </div>
-                    <h3>Thị giác Robot FEEE</h3>
+                    <h3>Thị giác Robot EEEC</h3>
                     <p>Nhận diện vật thể thông minh</p>
                 </div>
 
@@ -403,11 +394,9 @@
                     <div class="control-group">
                         <label class="control-label">Chế độ phát hiện</label>
                         <select id="detectionMode">
-                            <option value="general">SNN (Tổng quát)</option>
-                            <option value="yolo">YOLOv8 (Baseline)</option>
-                            <option value="face">SNN (Khuôn mặt)</option>
-                            <option value="object">SNN (Vật thể 3D)</option>
-                            <option value="motion">SNN (Chuyển động)</option>
+                            <option value="balanced">Cân bằng (Balanced)</option>
+                            <option value="safe">An toàn (Safe)</option>
+                            <option value="agile">Linh hoạt (Agile)</option>
                         </select>
                     </div>
                     <div class="control-group">
@@ -442,17 +431,16 @@
 
             <div class="camera-display">
                 <div class="camera-header">
-                    <h3>Luồng hình ảnh trực tiếp</h3>
+                    <h3>Luồng hình ảnh trực tiếp (Professional Dashboard)</h3>
                     <div class="action-buttons">
                         <button id="startBtn" class="action-btn">Bắt đầu</button>
                         <button id="stopBtn" class="action-btn">Dừng</button>
-                        <button id="captureBtn" class="action-btn">Chụp ảnh</button>
                     </div>
                 </div>
 
                 <div class="video-container">
                     <div class="video-wrapper">
-                        <img id="videoFeed" src="/video_feed" style="width: 100%; height: 100%; object-fit: cover;" alt="Live Camera Feed">
+                        <img id="videoFeed" src="/video_feed" alt="Live Camera Feed">
                     </div>
 
                     <div class="info-panel">
@@ -466,8 +454,8 @@
                                 <div class="info-label">Độ tin cậy</div>
                             </div>
                             <div class="info-item">
-                                <div class="info-value" id="processingTime">0ms</div>
-                                <div class="info-label">Thời gian xử lý</div>
+                                <div class="info-value" id="processingTime">--</div>
+                                <div class="info-label">Mode</div>
                             </div>
                         </div>
                     </div>
@@ -484,17 +472,15 @@
                 <p>(024) 3766 1234 | contact@utc.edu.vn</p>
             </div>
             <div class="footer-tech">
-                <p>Đề tài NCKH 2026 | Công nghệ: SNN · RAG · DepthAwareSNN · OpenCV</p>
-                <p>Robot FEEE Thị giác thông minh - Đại học Giao thông Vận tải</p>
+                <p>Đề tài NCKH 2026 | Công nghệ: SNN · YOLOv8 · Kalman · UI/UX Professional</p>
+                <p>Robot EEEC Thị giác thông minh - Đại học Giao thông Vận tải</p>
             </div>
         </div>
     </footer>
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script>
-        // Khởi tạo Socket.IO kết nối đến backend
         const socket = io();
-
         const videoElement = document.getElementById('videoFeed');
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
@@ -504,21 +490,21 @@
         const objectList = document.getElementById('objectList');
         const objectCount = document.getElementById('objectCount');
         const confidenceAvg = document.getElementById('confidenceAvg');
+        const processingTime = document.getElementById('processingTime');
 
         let isStreaming = true;
-        let lastTime = Date.now();
-        let frameCount = 0;
 
-        // Lắng nghe sự kiện cập nhật từ Vision backend
         socket.on('vision_update', (data) => {
             if (!isStreaming) return;
 
             if (data && data.objects) {
                 const objects = data.objects;
                 objectCount.textContent = data.num_objects;
+                fpsValue.textContent = data.fps ? data.fps.toFixed(1) : '--';
+                processingTime.textContent = data.mode ? data.mode.toUpperCase() : '--';
 
                 let totalConf = 0;
-                objects.forEach(obj => totalConf += obj.confidence || 0.5);
+                objects.forEach(obj => totalConf += obj.confidence || 0);
                 const avgConf = objects.length > 0 ? (totalConf / objects.length * 100).toFixed(1) : 0;
                 confidenceAvg.textContent = `${avgConf}%`;
 
@@ -530,57 +516,52 @@
                         else if (obj.behavior === 'stopped') behaviorColor = '#ff4444';
                         else if (obj.behavior === 'turning') behaviorColor = '#00d4ff';
 
+                        const riskLabel = obj.risk_level === 'high' ? '<span style="color:#ff4444; font-weight:800; animation: blink 1s infinite;">[!]</span>' : '';
+                        const behaviorMap = {
+                            'normal': 'Bình thường',
+                            'fast': 'Nhanh ⚡',
+                            'stopped': 'Dừng 🛑',
+                            'turning': 'Rẽ ↩️',
+                            'unknown': '??'
+                        };
+                        const behaviorVN = behaviorMap[obj.behavior] || obj.behavior;
+
                         return `
-                        <li>
-                            <span class="object-name" style="border-left: 3px solid ${behaviorColor}; padding-left: 5px;">${obj.class} (ID: ${obj.id})</span>
-                            <span class="object-confidence">${Math.round((obj.confidence || 0.5) * 100)}%</span>
+                        <li style="border-left: 4px solid ${behaviorColor}; background: rgba(255,255,255,0.05); border-radius: 4px; margin-bottom: 8px;">
+                            <div style="display: flex; flex-direction: column; width: 100%;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-weight: 700; color: #fff;">${riskLabel} ${obj.class} #${obj.id}</span>
+                                    <span style="color: var(--utc-yellow); font-size: 0.8rem;">${Math.round(obj.confidence * 100)}%</span>
+                                </div>
+                                <div style="font-size: 0.75rem; color: #aaa; margin-top: 4px;">Hành vi: <span style="color: ${behaviorColor}; font-weight:600;">${behaviorVN}</span></div>
+                            </div>
                         </li>`;
                     }).join('');
                 } else {
                     objectList.innerHTML = '<li style="color:#8a92a8; text-align:center;">Không phát hiện</li>';
                 }
-
-                detectionStatus.textContent = `Backend đang xử lý - ${objects.length} đối tượng`;
-            }
-
-            // Tính FPS nhận được từ Socket (ước lượng)
-            frameCount++;
-            const now = Date.now();
-            if (now - lastTime >= 1000) {
-                fpsValue.textContent = Math.round((frameCount * 1000) / (now - lastTime));
-                frameCount = 0;
-                lastTime = now;
             }
         });
 
         socket.on('connect', () => {
-            console.log('Connected to server');
-            if (isStreaming) {
-                cameraStatus.textContent = 'Đang nhận stream';
-                detectionStatus.textContent = 'Sẵn sàng';
-            }
+            cameraStatus.textContent = 'Trực tuyến';
+            cameraStatus.style.color = '#00ff88';
         });
 
         socket.on('disconnect', () => {
-            cameraStatus.textContent = 'Mất kết nối';
-            detectionStatus.textContent = 'Đang chờ backend...';
+            cameraStatus.textContent = 'Ngoại tuyến';
+            cameraStatus.style.color = '#ff4444';
         });
 
         function startCamera() {
-            if (videoElement.tagName.toLowerCase() === 'img') {
-                videoElement.src = '/video_feed?' + new Date().getTime();
-            }
+            videoElement.src = '/video_feed?' + new Date().getTime();
             isStreaming = true;
-            cameraStatus.textContent = 'Đang nhận stream';
-            detectionStatus.textContent = 'Backend xử lý';
+            detectionStatus.textContent = 'Hoạt động';
         }
 
         function stopCamera() {
-            if (videoElement.tagName.toLowerCase() === 'img') {
-                videoElement.src = '';
-            }
+            videoElement.src = '';
             isStreaming = false;
-            cameraStatus.textContent = 'Đã dừng';
             detectionStatus.textContent = 'Dừng';
             objectList.innerHTML = '<li style="color:#8a92a8; text-align:center;">Dừng xử lý</li>';
             objectCount.textContent = '0';
@@ -590,6 +571,17 @@
 
         startBtn.addEventListener('click', startCamera);
         stopBtn.addEventListener('click', stopCamera);
+
+        // Animation blink cho cảnh báo
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes blink {
+                0% { opacity: 1; }
+                50% { opacity: 0; }
+                100% { opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
 
         // Khởi động mặc định
         startCamera();

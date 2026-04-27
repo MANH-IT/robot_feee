@@ -1,5 +1,5 @@
 /**
- * chat.js - Xử lý trang trò chuyện với Robot FEEE
+ * chat.js - Xử lý trang trò chuyện với Robot EEEC
  * Đại học Giao thông Vận tải
  * Kết nối với FastAPI Backend tại localhost:8000
  */
@@ -195,7 +195,7 @@ function saveChatHistory() {
     try {
         // Chỉ lưu 50 tin nhắn gần nhất
         const toSave = chatState.messages.slice(-50);
-        localStorage.setItem('chat_history_feee', JSON.stringify(toSave));
+        localStorage.setItem('chat_history_eeec', JSON.stringify(toSave));
     } catch (e) {
         console.error('Cannot save chat history:', e);
     }
@@ -203,7 +203,7 @@ function saveChatHistory() {
 
 function loadChatHistory() {
     try {
-        const saved = localStorage.getItem('chat_history_feee');
+        const saved = localStorage.getItem('chat_history_eeec');
         if (saved) {
             chatState.messages = JSON.parse(saved);
             renderMessages();
@@ -375,13 +375,14 @@ async function sendToAPI(message) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-        const response = await fetch(`/api/ask`, {
+        const response = await fetch(`${CHAT_CONFIG.API_URL}/api/chat`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                question: message
+                message: message,
+                session_id: null
             }),
             signal: controller.signal
         });
@@ -391,7 +392,7 @@ async function sendToAPI(message) {
         if (response.ok) {
             const data = await response.json();
             // Backend trả về 'answer'
-            return data.answer || 'Xin lỗi, tôi chưa hiểu câu hỏi của bạn.';
+            return data.answer || data.response || 'Xin lỗi, tôi chưa hiểu câu hỏi của bạn.';
         } else {
             throw new Error(`HTTP ${response.status}`);
         }
@@ -410,7 +411,7 @@ function getSmartFallbackResponse(message) {
         { keywords: ['ngành nào', 'những ngành'], response: '📚 **Các ngành đào tạo chính:**\n\n🏗️ **Kỹ thuật:** Ô tô, Cầu đường, Xây dựng, CNTT\n📊 **Kinh tế:** Logistics, Quản trị kinh doanh, Kế toán\n🌐 **Chương trình chất lượng cao & liên kết quốc tế**' },
         { keywords: ['tuyển sinh', 'điểm chuẩn', 'xét tuyển'], response: '📋 **Thông tin tuyển sinh UTC:**\n\n**Phương thức:** Xét THPT, Xét học bạ, Xét tuyển thẳng\n**Thời gian:** Tháng 3-7 hàng năm\n🔗 Chi tiết: https://tuyensinh.utc.edu.vn' },
         { keywords: ['học phí'], response: '💰 **Học phí tham khảo:**\n- Hệ đại trà: 15-25 triệu/năm\n- Chất lượng cao: 25-35 triệu/năm\n- Liên kết quốc tế: Theo chương trình\n\n*Liên hệ phòng Đào tạo để biết thông tin chính xác*' },
-        { keywords: ['chào', 'hello', 'hi'], response: '🤖 Xin chào! Tôi là Robot FEEE, trợ lý ảo của Trường Đại học Giao thông Vận tải. Tôi có thể giúp gì cho bạn hôm nay?' },
+        { keywords: ['chào', 'hello', 'hi'], response: '🤖 Xin chào! Tôi là Robot EEEC, trợ lý ảo của Trường Đại học Giao thông Vận tải. Tôi có thể giúp gì cho bạn hôm nay?' },
         { keywords: ['cảm ơn', 'cam on'], response: '😊 Không có gì! Rất vui được giúp đỡ bạn.' },
         { keywords: ['tạm biệt', 'bye'], response: '👋 Tạm biệt! Chúc bạn một ngày tốt lành!' }
     ];
@@ -455,7 +456,7 @@ async function sendMessage(message) {
 
 // ==================== WELCOME MESSAGE ====================
 function addWelcomeMessage() {
-    const welcomeMessage = `🤖 **Xin chào! Tôi là Robot FEEE**
+    const welcomeMessage = `🤖 **Xin chào! Tôi là Robot EEEC**
 
 Tôi là trợ lý thông minh của **Đại học Giao thông Vận tải**.
 
@@ -603,7 +604,7 @@ function init() {
     // Cuộn xuống cuối
     scrollToBottom();
 
-    console.log('✅ Chat page initialized - Robot FEEE');
+    console.log('✅ Chat page initialized - Robot EEEC');
 }
 
 // Khởi tạo khi DOM ready

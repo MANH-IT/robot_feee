@@ -1,10 +1,10 @@
-// app.js - Ứng dụng chính cho Robot FEEE
+// app.js - Ứng dụng chính cho Robot EEEC
 // Đại học Giao thông Vận tải
 
 // Cấu hình
 const APP_CONFIG = {
     API_URL: 'http://localhost:8000',
-    APP_NAME: 'Robot FEEE',
+    APP_NAME: 'Robot EEEC',
     UNIVERSITY: 'Đại học Giao thông Vận tải',
     VERSION: '1.0.0'
 };
@@ -149,7 +149,7 @@ function getFallbackResponse(message) {
         'khoa công nghệ thông tin': 'Khoa Công nghệ thông tin nằm tại tầng 5, tòa nhà A.',
         'thư viện': 'Thư viện nằm ở tầng 2, tòa nhà trung tâm.',
         'căn tin': 'Căn tin nằm ở tầng 1, cạnh sảnh chính.',
-        'robot': 'Tôi là Robot FEEE, trợ lý thông minh của Đại học Giao thông Vận tải.',
+        'robot': 'Tôi là Robot EEEC, trợ lý thông minh của Đại học Giao thông Vận tải.',
         'chào': 'Xin chào! Rất vui được gặp bạn. Tôi có thể giúp gì cho bạn?'
     };
 
@@ -181,10 +181,10 @@ function getFallbackNews() {
     return [
         {
             id: 1,
-            title: "Khởi động dự án Robot FEEE",
+            title: "Khởi động dự án Robot EEEC",
             category: "công nghệ",
             date: formatDate(),
-            summary: "Dự án Robot FEEE chính thức được khởi động tại Đại học Giao thông Vận tải.",
+            summary: "Dự án Robot EEEC chính thức được khởi động tại Đại học Giao thông Vận tải.",
             content: "Dự án sử dụng công nghệ Spiking Neural Networks tiên tiến."
         },
         {
@@ -504,7 +504,7 @@ function initChatPage() {
 
     renderMessages();
     if (chatHistory.getAll().length === 0) {
-        addMessage('Xin chào! Tôi là Robot FEEE, trợ lý thông minh của Đại học Giao thông Vận tải.<br><br>Tôi có thể:<br><ul><li>Chỉ đường trong tòa nhà 15 tầng</li><li>Trả lời câu hỏi về trường</li><li>Cập nhật tin tức mới nhất</li><li>Nhận diện vật thể qua camera</li></ul><br>Hãy hỏi tôi bất cứ điều gì!', 'robot');
+        addMessage('Xin chào! Tôi là Robot EEEC, trợ lý thông minh của Đại học Giao thông Vận tải.<br><br>Tôi có thể:<br><ul><li>Chỉ đường trong tòa nhà 15 tầng</li><li>Trả lời câu hỏi về trường</li><li>Cập nhật tin tức mới nhất</li><li>Nhận diện vật thể qua camera</li></ul><br>Hãy hỏi tôi bất cứ điều gì!', 'robot');
     }
 
     // Kiểm tra câu hỏi nhanh từ localStorage
